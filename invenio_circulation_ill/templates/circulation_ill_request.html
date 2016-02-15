@@ -1,0 +1,154 @@
+{# -*- coding: utf-8 -*-
+#
+# This file is part of Invenio.
+# Copyright (C) 2015 CERN.
+#
+# Invenio is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License as
+# published by the Free Software Foundation; either version 2 of the
+# License, or (at your option) any later version.
+#
+# Invenio is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Invenio; if not, write to the Free Software Foundation, Inc.,
+# 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
+#}
+
+{%- extends 'circulation_base_blank.html' -%}
+
+{% from 'macros.html' import options %}
+
+{%- block css %}
+    {{ super() }}
+    {% assets "invenio_circulation_ill_css" %}<link href="{{ ASSET_URL }}" rel="stylesheet">{% endassets %}
+{%- endblock css %}
+
+{%- block javascript -%}
+    {{ super() }}
+    {% assets "invenio_circulation_ill_js" %}<script src="{{ ASSET_URL }}"></script>{% endassets %}
+{%- endblock javascript -%}
+
+{%- block circulation_body -%}
+
+    {% block circulation_ill_user %}
+    {% endblock %}
+
+{% if not record_id %}
+    <ul class="nav nav-tabs">
+      <li class="active ill_request_type"><a href="#">Request a Book</a></li>
+      <li class="ill_request_type"><a href="#">Request an Article</a></li>
+    </ul>
+{% endif %}
+
+<div id="ill_documents">
+<div data-record_id="{{record_id}}" data-type="book" class="panel panel-default ill_document">
+        <div class="panel-heading">Document Details</div>
+        <div class="panel-body">
+            <form id="document_form">
+                <div class="form-group">
+                    <label>Title</label>
+                    <input class="form-control" value="{{title_statement.title}}" data-value_name="title_statement.title">
+                </div>
+                <div class="form-group">
+                    <label>ISBN</label>
+                    <input class="form-control" value="{{international_standard_book_number.international_standard_book_number}}" data-value_name="international_standard_book_number.international_standard_book_number">
+                </div>
+                <div class="form-group">
+                    <label>Authors</label>
+                    <input class="form-control" placeholder="Author list separated by semicolons" value="{{circulation_compact_authors}}" data-value_name="circulation_compact_authors">
+                </div>
+                <div class="form-group">
+                    <label>Year</label>
+                    <input class="form-control" value="{{publication_distribution_imprint.0.date_of_publication_distribution.0}}" data-value_name="publication_distribution_imprint.0.date_of_publication_distribution.0">
+                </div>
+                <div class="form-group">
+                    <label>Edition</label>
+                    <input class="form-control" value="{{edition_statement.edition_statement}}" data-value_name="edition_statement.edition_statement">
+                </div>
+                <div class="form-group">
+                    <label>Publisher</label>
+                    <input class="form-control" value="{{publication_distribution_imprint.0.name_of_publisher_distributor.0}}" data-value_name="publication_distribution_imprint.0.name_of_publisher_distributor.0">
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div data-record_id="{{record_id}}" data-type="article" class="panel panel-default ill_document hidden">
+        <div class="panel-heading">Document Details</div>
+        <div class="panel-body">
+            <form id="document_form">
+                <div class="form-group">
+                    <label>Periodical Title</label>
+                    <input class="form-control" value="{{host_item_entry.abbreviated_title}}" data-value_name="host_item_entry.abbreviated_title">
+                </div>
+                <div class="form-group">
+                    <label>Article Title</label>
+                    <input class="form-control" value="{{title_statement.title}}" data-value_name="title_statement.title">
+                </div>
+                <div class="form-group">
+                    <label>Authors</label>
+                    <input class="form-control" placeholder="Author list separated by semicolons" value="{{circulation_compact_authors}}" data-value_name="circulation_compact_authors">
+                </div>
+                <div class="form-group">
+                    <label>Volume</label>
+                    <input class="form-control" value="{{host_item_entry.volume}}" data-value_name="host_item_entry.volume">
+                </div>
+                <div class="form-group">
+                    <label>Issue</label>
+                    <input class="form-control" value="{{host_item_entry.issue}}" data-value_name="host_item_entry.issue">
+                </div>
+                <div class="form-group">
+                    <label>Pages</label>
+                    <input class="form-control" value="{{host_item_entry.pages}}" data-value_name="host_item_entry.pages">
+                </div>
+                <div class="form-group">
+                    <label>ISSN</label>
+                    <input class="form-control" value="{{international_standard_serial_number.international_standard_serial_number}}" data-value_name="international_standard_serial_number.international_standard_serial_number">
+                </div>
+                <div class="form-group">
+                    <label>Year</label>
+                    <input class="form-control" value="{{host_item_entry.year}}" data-value_name="host_item_entry.year">
+                </div>
+                <div class="form-group">
+                    <label>Publisher</label>
+                    <input class="form-control" value="{{publication_distribution_imprint.0.name_of_publisher_distributor.0}}" data-value_name="publication_distribution_imprint.0.name_of_publisher_distributor.0">
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<div class="panel panel-default">
+    <div class="panel-heading">Request Details</div>
+    <div class="panel-body">
+        <form id="request_form">
+            <div class="form-group">
+                <label for="exampleInputEmail1">Desired Start Date</label>
+                <input id="ill_date_from" class="form-control" value="{{start_date}}">
+            </div>
+            <div class="form-group">
+                <label for="exampleInputEmail1">Desired End Date</label>
+                <input id="ill_date_to" class="form-control" value="{{end_date}}">
+            </div>
+            <div class="form-group">
+                <label for="exampleInputEmail1">Delivery</label>
+                <select class="form-control circulation_option" id="circulation_option_delivery" data-val="{{delivery}}">
+                    <option>Pick up</option>
+                    <option>Internal Mail</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="exampleInputEmail1">Additional Comments</label>
+                <textarea id="request_comments" class="form-control" rows="3"></textarea>
+            </div>
+        </form>
+    </div>
+</div>
+
+<button id="ill_request_submit" class="btn btn-success btn-block" type="submit" data-action="{{action}}">Submit</button>
+{%- endblock -%}
