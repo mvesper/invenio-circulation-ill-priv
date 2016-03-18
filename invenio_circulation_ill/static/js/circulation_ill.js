@@ -41,37 +41,25 @@ function($, _bdp) {
     });
 
     $('#ill_request_submit').on('click', function(){
-        function get_form_data(element) {
-            var data = {};
-            $(element).find('.form-control').each(function(i, elem){
-                elem = $(elem);
-                var tmp = elem.attr('id').split('_');
-                tmp.splice(0, 1);
-                var field = tmp.join('_');
-                data[field] = elem.val();
-            });
-            return data
-        }
+        // Get record values
+        var rec = {};
+        var active_form = $('.ill_document').not('hidden');
+        active_form.find('.form-control').each(function(index, element) {
+            rec[$(element).data('value_name')] = element.value;
+        });
 
-        var user_id = $('#ill_document').data('user_id');
-        var record_id = $('#ill_document').data('record_id');
+        // Get user values
+        var user = {};
+        $('#user_form').find('.form-control').each(function(index, element) {
+            user[$(element).data('value_name')] = element.value;
+        });
+
+        var record_id = $(active_form).data('record_id');
+        var type = $(active_form).data('type');
         var start_date = $('#ill_date_from').val();
         var end_date = $('#ill_date_to').val();
         var comments = $('#request_comments').val();
         var delivery = $('#circulation_option_delivery').val();
-
-        var record = get_form_data('#document_form');
-        record['record_id'] = record_id;
-
-        var user = get_form_data('#user_form');
-
-        var search_body = {user_id: user_id,
-                           user: user,
-                           record: record,
-                           start_date: start_date,
-                           end_date: end_date,
-                           comments: comments,
-                           delivery: delivery};
 
         if ($(this).data('action') == 'request'){
             var url = '/circulation/api/ill/request_ill/';
@@ -79,38 +67,18 @@ function($, _bdp) {
             var url = '/circulation/api/ill/register_ill/';
         }
 
+        var data = {record: rec, user: user, type: type, record_id: record_id,
+                    start_date: start_date, end_date: end_date,
+                    comments: comments, delivery: delivery};
+
         function success() {
-            location.reload()
+            $(document).scrollTop(0);
+            window.location.reload();
         }
 
         $.ajax({
             type: "POST",
             url: url,
-            data: JSON.stringify(JSON.stringify(search_body)),
-            success: success,
-            contentType: 'application/json',
-        });
-    });
-
-    $(document).ready(function(){
-        if($('#circulation_alert').length){
-            function hide_circulation_alert(){
-                $('#circulation_alert').fadeOut(1000);
-            }
-            setTimeout(hide_circulation_alert, 5000);
-        }
-    });
-
-    $('.ill_list_action').on('click', function(event) {
-        var data = $(event.target).data();
-
-        function success() {
-            location.reload()
-        }
-
-        $.ajax({
-            type: "POST",
-            url: "/circulation/api/ill/perform_action/",
             data: JSON.stringify(JSON.stringify(data)),
             success: success,
             contentType: 'application/json',
@@ -119,5 +87,20 @@ function($, _bdp) {
 
     $('#ill_date_from').datepicker({ dateFormat: 'yy-mm-dd' });
     $('#ill_date_to').datepicker({ dateFormat: 'yy-mm-dd' });
-}
-);
+
+    $('.ill_request_type').on('click', function(event) {
+        var list_item = event.target.parentElement;
+        if (!$(list_item).hasClass('active')) {
+            $(list_item.parentElement).find('.active').removeClass('active');
+            $(list_item).addClass('active');
+
+            $('#ill_documents').children().each(function(i, doc) {
+                if ($(doc).hasClass('hidden')) {
+                    $(doc).removeClass('hidden');
+                } else {
+                    $(doc).addClass('hidden');
+                }
+            });
+        }
+    });
+});

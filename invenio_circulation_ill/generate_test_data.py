@@ -17,6 +17,7 @@ def generate(app=None):
 
     create_indices(app)
 
+    '''
     user = models.CirculationUser.get(1)
     record = models.CirculationRecord.get_all()[0]
 
@@ -24,3 +25,4 @@ def generate(app=None):
     end_date = start_date + datetime.timedelta(weeks=4)
 
     api.ill.request_ill(user, record, start_date, end_date)
+    '''

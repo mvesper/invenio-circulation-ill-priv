@@ -19,6 +19,7 @@
 #}
 
 {%- extends 'circulation_base.html' -%}
+{% from 'macros.html' import description_modal %}
 
 {%- block css %}
     {{ super() }}
@@ -36,8 +37,9 @@
             <th>Borrower</th>
             <th>CCID</th>
             <th>Record</th>
-            <th>Start date</th>
-            <th>End date</th>
+            <th>Start Date</th>
+            <th>End Date</th>
+            <th>Desired End Date</th>
             <th>Actions</th>
         </tr>
     {% for clc in ill_clcs %}
@@ -47,11 +49,15 @@
             <td>{{clc.item.record.title}}</td>
             <td>{{clc.start_date}}</td>
             <td>{{clc.end_date}}</td>
+            <td>{{clc.desired_end_date}}</td>
             <td class='col-md-2'>
-                <button type="button" class="btn btn-success ill_list_action" data-ill_clc_id="{{clc.id}}" data-action="confirm_ill_extension">CONFIRM</button>
-                <button type="button" class="btn btn-danger ill_list_action" data-ill_clc_id="{{clc.id}}" data-action="decline_ill_extension">DECLINE</button>
+                <button type="button" class="btn btn-success entity_action" data-ill_lc_id="{{clc.id}}" data-action="confirm_ill_extension">CONFIRM</button>
+                <button type="button" class="btn btn-danger entity_action" data-modal_type="" data-modal_id="ill_cancelation" data-ill_lc_id="{{clc.id}}" data-action="decline_ill_extension">DECLINE</button>
             </td>
         </tr>
     {% endfor %}
     </table>
+
+    {{ description_modal('ill_cancelation', 'Enter Cancelation Reason', [('reason', 'Reason')])}}
+
 {%- endblock -%}

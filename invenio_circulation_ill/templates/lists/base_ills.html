@@ -19,6 +19,7 @@
 #}
 
 {%- extends 'circulation_base.html' -%}
+{% from 'macros.html' import description_modal %}
 
 {%- block css %}
     {{ super() }}
@@ -50,16 +51,19 @@
             <td class='col-md-2'>
                 {% if positive_actions %}
                     {% for action, name in positive_actions %}
-                    <button type="button" class="btn btn-success ill_list_action" data-ill_clc_id="{{clc.id}}" data-action="{{action}}">{{name}}</button>
+                    <button type="button" class="btn btn-success entity_action" data-ill_lc_id="{{clc.id}}" data-action="{{action}}">{{name}}</button>
                     {% endfor %}
                 {% endif %}
                 {% if negative_actions %}
                     {% for action, name in negative_actions %}
-                    <button type="button" class="btn btn-danger ill_list_action" data-ill_clc_id="{{clc.id}}" data-action="{{action}}">{{name}}</button>
+                    <button type="button" class="btn btn-danger entity_action" data-modal_type="" data-modal_id="ill_cancelation" data-ill_lc_id="{{clc.id}}" data-action="{{action}}">{{name}}</button>
                     {% endfor %}
                 {% endif %}
             </td>
         </tr>
     {% endfor %}
     </table>
+
+    {{ description_modal('ill_cancelation', 'Enter Cancelation Reason', [('reason', 'Reason')])}}
+
 {%- endblock -%}

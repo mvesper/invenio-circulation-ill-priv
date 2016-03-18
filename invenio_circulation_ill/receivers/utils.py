@@ -5,9 +5,14 @@ from invenio_circulation.signals import (
 def _get_action(action, try_action=False):
     import invenio_circulation_ill.api as api
 
-    actions = {'cancel_ill_request': (api.ill, 'cancel_ill_request'),
-               'request_ill_extension': (api.ill, 'request_ill_extension'),
-               'lose_ill': (api.ill, 'lose_ill')}
+    actions = {'confirm_ill_request': (api.ill, 'confirm_ill_request'),
+               'decline_ill_request': (api.ill, 'decline_ill_request'),
+               'deliver_ill': (api.ill, 'deliver_ill'),
+               'cancel_ill_request': (api.ill, 'cancel_ill_request'),
+               'confirm_ill_extension': (api.ill, 'confirm_ill_extension'),
+               'decline_ill_extension': (api.ill, 'decline_ill_extension'),
+               'lose_ill': (api.ill, 'lose_ill'),
+               'return_ill': (api.ill, 'return_ill')}
 
     try_action = 'try_' if try_action else ''
 
@@ -63,7 +68,7 @@ def _convert_params(entity, data):
     except Exception:
         ill_lc = None
 
-    res = {'ill_lc': ill_lc}
+    res = {'ill_loan_cycle': ill_lc}
 
     return {'name': 'ill', 'result': res}
 

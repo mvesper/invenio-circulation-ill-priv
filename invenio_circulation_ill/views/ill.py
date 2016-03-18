@@ -25,102 +25,155 @@ import invenio_circulation_ill.models as models
 import invenio_circulation_ill.api as api
 
 from flask import Blueprint, render_template, flash, request
+from flask_login import current_user
 from invenio_records.api import Record
+from invenio_circulation.views.utils import get_user
 from invenio_circulation.acl import circulation_admin_permission as cap
 
 blueprint = Blueprint('ill', __name__, url_prefix='/circulation',
                       template_folder='../templates',
                       static_folder='../static')
 
+rec_fields = [(('title_statement', 'title'), ''),
+              (('international_standard_book_number',
+                'international_standard_book_number'), ''),
+              (('publication_distribution_imprint', 0,
+                'date_of_publication_distribution', 0), ''),
+              (('publication_distribution_imprint', 0,
+                'name_of_publisher_distributor', 0), ''),
+              (('international_standard_serial_number',
+                'international_standard_serial_number'), ''),
+              (('edition_statement', 'edition_statement'), ''),
+              (('host_item_entry', 'abbreviated_title'), ''),
+              (('host_item_entry', 'volume'), ''),
+              (('host_item_entry', 'issue'), ''),
+              (('host_item_entry', 'pages'), ''),
+              (('host_item_entry', 'year'), '')]
 
-def _fill_data(record_id):
-    rec = Record.get_record(record_id) if record_id else {}
 
-    data = {}
-    try:
-        data['title'] = rec['title_statement']['title']
-    except Exception:
-        pass
+def _prepare_record(record, fields):
+    def _get_struct(field, index, value):
+        try:
+            return [] if type(field[index+1]) == int else {}
+        except IndexError:
+            return value
 
-    try:
-        data['isbn'] = rec['international_standard_book_number']
-    except Exception:
-        pass
+    for field, value in fields:
+        rec = record
 
-    imprint = 'publication_distribution_imprint'
+        for i, key in list(enumerate(field)):
+            if isinstance(rec, dict):
+                if key not in rec:
+                    rec[key] = _get_struct(field, i, value)
+                rec = rec[key]
+            elif isinstance(rec, list):
+                if key >= len(rec):
+                    rec.append(_get_struct(field, i, value))
+                rec = rec[key]
 
-    try:
-        date = 'date_of_publication_distribution'
-        data['year'] = rec[imprint][0][date][0]
-    except Exception:
-        pass
 
-    try:
-        publisher = 'name_of_publisher_distributor'
-        data['publisher'] = rec[imprint][0][publisher][0]
-    except Exception:
-        pass
-
-    data['authors'] = []
+def _prepare_record_authors(rec):
+    key = 'circulation_compact_authors'
+    rec[key] = []
     pn = 'personal_name'
+
     try:
-        data['authors'].append(rec['main_entry_personal_name'][pn])
+        rec[key].append(rec['main_entry_personal_name'][pn])
     except Exception:
         pass
 
     try:
-        tmp = [x[pn] for x in rec['added_entry_personal_name']]
-        data['authors'].extend(tmp)
+        rec[key].extend([x[pn] for x in rec['added_entry_personal_name']])
     except Exception:
         pass
 
-    data['authors'] = '; '.join(data['authors'])
+    rec[key] = '; '.join(rec[key])
 
-    data['start_date'] = datetime.date.today().isoformat()
-    data['end_date'] = datetime.date.today() + datetime.timedelta(weeks=4)
 
-    return data
+@blueprint.route('/ill/request_ill/')
+@blueprint.route('/ill/request_ill/<record_id>')
+def ill_request(record_id=None):
+    try:
+        get_user(current_user)
+    except AttributeError:
+        # Anonymous User
+        return render_template('invenio_theme/401.html')
 
-@blueprint.route('/ill/request_ill/<user_id>/')
-@blueprint.route('/ill/request_ill/<user_id>/<record_id>')
-def ill_request(user_id, record_id=None):
-    data = _fill_data(record_id)
-    data = {'record_id': record_id, 'user_id': user_id}
+    rec = Record.get_record(record_id) if record_id else {}
+    _prepare_record(rec, rec_fields)
+    _prepare_record_authors(rec)
+
+    start_date = datetime.date.today().isoformat()
+    end_date = datetime.date.today() + datetime.timedelta(weeks=4)
 
     return render_template('circulation_ill_request.html',
-                           action='request', **data)
+                           action='request', record_id=record_id,
+                           start_date=start_date, end_date=end_date, **rec)
 
 
 @blueprint.route('/ill/register_ill/')
 @blueprint.route('/ill/register_ill/<record_id>')
 @cap.require(403)
 def ill_register(record_id=None):
-    data = _fill_data(record_id)
+    rec = Record.get_record(record_id) if record_id else {}
+    _prepare_record(rec, rec_fields)
+    _prepare_record_authors(rec)
+
+    start_date = datetime.date.today().isoformat()
+    end_date = datetime.date.today() + datetime.timedelta(weeks=4)
+
     return render_template('circulation_ill_register.html',
-                           action='register', **data)
+                           action='register', record_id=record_id,
+                           start_date=start_date, end_date=end_date, **rec)
+
 
 def _create_record(data):
-    from copy import copy
-    from invenio_records.api import create_record
+    # TODO: It might make sense to mark the new record as temporary
+    import uuid
+    import dateutil.parser as parser
 
-    data = copy(data)
-    del data['record_id']
+    from invenio_db import db
+    from invenio_pidstore.minters import recid_minter
+    from invenio_indexer.api import RecordIndexer
+    from invenio_records.api import Record
 
-    authors = data['authors'].split(';')
-    if authors:
-        main_author = authors[0]
-        added_authors = authors[1:]
+    def _get_keys(key_string):
+        return [int(x) if x.isdigit() else unicode(x)
+                for x in key_string.split('.')]
 
-    record = {'title_statement': {'title': data['title']},
-              'international_standard_book_number': data['isbn'],
-              'publication_distribution_imprint': [
-                  {'date_of_publication_distribution': [data['year']],
-                   'name_of_publisher_distributor': [data['publisher']]}],
-              'main_entry_personal_name': {'personal_name': main_author},
-              'added_entry_personal_name': [
-                  {'personal_name': x} for x in added_authors]}
+    authors = data['circulation_compact_authors'].split(';')
+    del data['circulation_compact_authors']
 
-    return create_record(record)
+    fields = [(_get_keys(key), unicode(value)) for key, value in data.items()]
+
+    rec = {}
+    _prepare_record(rec, fields)
+
+    rec[u'main_entry_personal_name'] = {u'personal_name': unicode(authors[0])}
+    rec[u'added_entry_personal_name'] = [{u'personal_name': unicode(x)}
+                                         for x in authors[1:]]
+
+    # We need to check the year here
+    year = (rec[u'publication_distribution_imprint'][0]
+               [u'date_of_publication_distribution'][0])
+
+    if year == u'':
+        del (rec[u'publication_distribution_imprint'][0]
+                [u'date_of_publication_distribution'])
+
+    parser.parse(year)
+
+    rec_uuid = uuid.uuid4()
+    pid = recid_minter(rec_uuid, rec)
+    rec[u'recid'] = int(pid.pid_value)
+    rec[u'uuid'] = unicode(str(rec_uuid))
+
+    r = Record.create(rec, id_=rec_uuid)
+    RecordIndexer().index(r)
+    
+    db.session.commit()
+
+    return r
 
 
 def _try_fetch_user(user):
@@ -136,19 +189,23 @@ def _try_fetch_user(user):
 
 
 def _create_ill(data, user):
-    if data['record']['record_id']:
-        record = circ_models.CirculationRecord.get(data['record']['record_id'])
-    else:
-        # TODO: It might make sense to mark the new record as temporary
-        record = _create_record(data['record'])
-        record = circ_models.CirculationRecord.get(record['control_number'])
+    try:
+        record = circ_models.CirculationRecord.get(data['record_id'])
+    except Exception as e:
+        try:
+            record = _create_record(data['record'])
+        except ValueError:
+            return ('', 500)
+        record = circ_models.CirculationRecord.get(record['uuid'])
 
     start_date = datetime.datetime.strptime(data['start_date'], '%Y-%m-%d')
     end_date = datetime.datetime.strptime(data['end_date'], '%Y-%m-%d')
     comments = data['comments']
     delivery = data['delivery']
+    type = data['type']
 
-    api.ill.request_ill(user, record, start_date, end_date, delivery)
+    api.ill.request_ill(user, record, start_date, end_date,
+                        delivery, comments, type)
 
     flash('Successfully created an ill request.')
     return ('', 200)
@@ -164,32 +221,9 @@ def register_ill():
 
 @blueprint.route('/api/ill/request_ill/', methods=['POST'])
 def request_ill():
-    data = json.loads(request.get_json())
-    user = circ_models.CirculationUser.get(data['user_id'])
-    return _create_ill(data, user)
-
-
-@blueprint.route('/api/ill/perform_action/', methods=['POST'])
-def perform_ill_action():
-    actions = {'confirm': api.ill.confirm_ill_request,
-               'decline': api.ill.decline_ill_request,
-               'deliver': api.ill.deliver_ill,
-               'cancel': api.ill.cancel_ill_request,
-               'confirm_ill_extension': api.ill.confirm_ill_extension,
-               'decline_ill_extension': api.ill.decline_ill_extension}
-    msgs = {'confirm': 'confirmed', 'decline': 'declined',
-            'deliver': 'delivered', 'cancel': 'canceled',
-            'confirm_ill_extension': 'extended',
-            'decline_ill_extension': 'not extended'}
-
-    data = json.loads(request.get_json())
-    action = data['action']
-    ill_clc_id = data['ill_clc_id']
-
-    ill_clc = models.IllLoanCycle.get(ill_clc_id)
-
-    actions[action](ill_clc)
-
-    flash('Successfully {0} the ill request {1}.'.format(msgs[action],
-                                                         ill_clc_id))
-    return ('', 200)
+    try:
+        user = get_user(current_user)
+        data = json.loads(request.get_json())
+        return _create_ill(data, user)
+    except AttributeError:
+        return ('', 403)

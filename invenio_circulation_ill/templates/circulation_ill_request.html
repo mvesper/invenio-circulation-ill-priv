@@ -37,32 +37,90 @@
     {% block circulation_ill_user %}
     {% endblock %}
 
-<div id="ill_document" data-record_id="{{record_id}}" data-user_id="{{user_id}}" class="panel panel-default">
-    <div class="panel-heading">Document Details</div>
-    <div class="panel-body">
-        <form id="document_form">
-            <div class="form-group">
-                <label for="exampleInputEmail1">Title</label>
-                <input id="document_title" class="form-control" value="{{title}}">
-            </div>
-            <div class="form-group">
-                <label for="exampleInputEmail1">ISBN</label>
-                <input id="document_isbn" class="form-control" value="{{isbn}}">
-            </div>
-            <div class="form-group">
-                <label for="exampleInputEmail1">Authors</label>
-                <input id="document_authors" class="form-control" placeholder="Author list separated by semicolons" value="{{authors}}">
-            </div>
-            <div class="form-group">
-                <label for="exampleInputEmail1">Year</label>
-                <input id="document_year" class="form-control" value="{{year}}">
-            </div>
-            <div class="form-group">
-                <label for="exampleInputEmail1">Publisher</label>
-                <input id="document_publisher" class="form-control" value="{{publisher}}">
-            </div>
-        </form>
+{% if not record_id %}
+    <ul class="nav nav-tabs">
+      <li class="active ill_request_type"><a href="#">Request a Book</a></li>
+      <li class="ill_request_type"><a href="#">Request an Article</a></li>
+    </ul>
+{% endif %}
+
+<div id="ill_documents">
+<div data-record_id="{{record_id}}" data-type="book" class="panel panel-default ill_document">
+        <div class="panel-heading">Document Details</div>
+        <div class="panel-body">
+            <form id="document_form">
+                <div class="form-group">
+                    <label>Title</label>
+                    <input class="form-control" value="{{title_statement.title}}" data-value_name="title_statement.title">
+                </div>
+                <div class="form-group">
+                    <label>ISBN</label>
+                    <input class="form-control" value="{{international_standard_book_number.international_standard_book_number}}" data-value_name="international_standard_book_number.international_standard_book_number">
+                </div>
+                <div class="form-group">
+                    <label>Authors</label>
+                    <input class="form-control" placeholder="Author list separated by semicolons" value="{{circulation_compact_authors}}" data-value_name="circulation_compact_authors">
+                </div>
+                <div class="form-group">
+                    <label>Year</label>
+                    <input class="form-control" value="{{publication_distribution_imprint.0.date_of_publication_distribution.0}}" data-value_name="publication_distribution_imprint.0.date_of_publication_distribution.0">
+                </div>
+                <div class="form-group">
+                    <label>Edition</label>
+                    <input class="form-control" value="{{edition_statement.edition_statement}}" data-value_name="edition_statement.edition_statement">
+                </div>
+                <div class="form-group">
+                    <label>Publisher</label>
+                    <input class="form-control" value="{{publication_distribution_imprint.0.name_of_publisher_distributor.0}}" data-value_name="publication_distribution_imprint.0.name_of_publisher_distributor.0">
+                </div>
+            </form>
+        </div>
     </div>
+
+    <div data-record_id="{{record_id}}" data-type="article" class="panel panel-default ill_document hidden">
+        <div class="panel-heading">Document Details</div>
+        <div class="panel-body">
+            <form id="document_form">
+                <div class="form-group">
+                    <label>Periodical Title</label>
+                    <input class="form-control" value="{{host_item_entry.abbreviated_title}}" data-value_name="host_item_entry.abbreviated_title">
+                </div>
+                <div class="form-group">
+                    <label>Article Title</label>
+                    <input class="form-control" value="{{title_statement.title}}" data-value_name="title_statement.title">
+                </div>
+                <div class="form-group">
+                    <label>Authors</label>
+                    <input class="form-control" placeholder="Author list separated by semicolons" value="{{circulation_compact_authors}}" data-value_name="circulation_compact_authors">
+                </div>
+                <div class="form-group">
+                    <label>Volume</label>
+                    <input class="form-control" value="{{host_item_entry.volume}}" data-value_name="host_item_entry.volume">
+                </div>
+                <div class="form-group">
+                    <label>Issue</label>
+                    <input class="form-control" value="{{host_item_entry.issue}}" data-value_name="host_item_entry.issue">
+                </div>
+                <div class="form-group">
+                    <label>Pages</label>
+                    <input class="form-control" value="{{host_item_entry.pages}}" data-value_name="host_item_entry.pages">
+                </div>
+                <div class="form-group">
+                    <label>ISSN</label>
+                    <input class="form-control" value="{{international_standard_serial_number.international_standard_serial_number}}" data-value_name="international_standard_serial_number.international_standard_serial_number">
+                </div>
+                <div class="form-group">
+                    <label>Year</label>
+                    <input class="form-control" value="{{host_item_entry.year}}" data-value_name="host_item_entry.year">
+                </div>
+                <div class="form-group">
+                    <label>Publisher</label>
+                    <input class="form-control" value="{{publication_distribution_imprint.0.name_of_publisher_distributor.0}}" data-value_name="publication_distribution_imprint.0.name_of_publisher_distributor.0">
+                </div>
+            </form>
+        </div>
+    </div>
+
 </div>
 
 <div class="panel panel-default">
