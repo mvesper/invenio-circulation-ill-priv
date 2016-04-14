@@ -85,8 +85,8 @@ function($, _bdp) {
         });
     });
 
-    $('#ill_date_from').datepicker({ dateFormat: 'yy-mm-dd' });
-    $('#ill_date_to').datepicker({ dateFormat: 'yy-mm-dd' });
+    $('#ill_date_from').datepicker({ format: 'yyyy-mm-dd' });
+    $('#ill_date_to').datepicker({ format: 'yyyy-mm-dd' });
 
     $('.ill_request_type').on('click', function(event) {
         var list_item = event.target.parentElement;

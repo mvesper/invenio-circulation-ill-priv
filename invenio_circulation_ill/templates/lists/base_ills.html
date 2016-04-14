@@ -50,8 +50,12 @@
             <td>{{clc.end_date}}</td>
             <td class='col-md-2'>
                 {% if positive_actions %}
-                    {% for action, name in positive_actions %}
-                    <button type="button" class="btn btn-success entity_action" data-ill_lc_id="{{clc.id}}" data-action="{{action}}">{{name}}</button>
+                    {% for action, name, modal in positive_actions %}
+                        {% if modal %}
+                            <button type="button" class="btn btn-success entity_action" data-modal_type="" data-modal_id="{{modal}}" data-ill_lc_id="{{clc.id}}" data-action="{{action}}">{{name}}</button>
+                        {% else %}
+                            <button type="button" class="btn btn-success entity_action" data-ill_lc_id="{{clc.id}}" data-action="{{action}}">{{name}}</button>
+                        {% endif %}
                     {% endfor %}
                 {% endif %}
                 {% if negative_actions %}
@@ -63,6 +67,29 @@
         </tr>
     {% endfor %}
     </table>
+
+    <div class="modal fade modal_form" id="ill_confirmation">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                  <div class="modal-header">
+                      <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                      <h4 id="description_modal_title" class="modal-title">Ill Confirmation</h4>
+                  </div>
+                  <div class="modal-body">
+                        <div class="col-md-12">
+                            <input class="form-control modal_value circ_id_complete" data-modal_attr="supplier_id" type="text" placeholder="Supplier ID" data-entity="ill_supplier">
+                        </div>
+                        <div class="col-md-12">
+                            <textarea class="form-control modal_value" data-modal_attr="comments" type="text" placeholder="Comments"></textarea>
+                        </div>
+                  </div>
+                  <div class="modal-footer">
+                      <button type="button" class="btn btn-default" data-dismiss="modal">CLOSE</button>
+                      <button type="button" class="btn btn-default modal_submit">OK</button>
+                  </div>
+            </div>
+        </div>
+    </div>
 
     {{ description_modal('ill_cancelation', 'Enter Cancelation Reason', [('reason', 'Reason')])}}
 

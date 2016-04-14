@@ -56,13 +56,15 @@ def try_confirm_ill_request(ill_loan_cycle):
         raise ValidationExceptions(exceptions)
 
 
-def confirm_ill_request(ill_loan_cycle):
+def confirm_ill_request(ill_loan_cycle, supplier_id, comments):
     try:
         try_confirm_ill_request(ill_loan_cycle)
     except ValidationExceptions as e:
         raise e
 
     ill_loan_cycle.current_status = IllLoanCycle.STATUS_ORDERED
+    ill_loan_cycle.supplier_id = supplier_id
+    ill_loan_cycle.comments = comments
     ill_loan_cycle.save()
 
     create_event(ill_loan_cycle_id=ill_loan_cycle.id,

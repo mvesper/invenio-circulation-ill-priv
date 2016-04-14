@@ -13,9 +13,14 @@ def generate(app=None):
     import datetime
 
     import invenio_circulation.models as models
+    import invenio_circulation_ill.models as ill_models
     import invenio_circulation_ill.api as api
 
     create_indices(app)
+
+    ill_models.IllSupplier.new(name='Amazon.com')
+    ill_models.IllSupplier.new(name='Amazon.fr')
+    ill_models.IllSupplier.new(name='Amazon.co.uk')
 
     '''
     user = models.CirculationUser.get(1)

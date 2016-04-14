@@ -35,7 +35,7 @@
                 <td>{{lc.clc.end_date}}</td>
                 <td>
                     <button type="button" class="btn btn-default btn-default entity_action" data-modal_type="time_pick" data-modal_attr="requested_end_date" data-ill_lc_id="{{lc.clc.id}}" data-action="request_ill_extension" data-cal_data="{{lc.cal_data}}" data-cal_range="{{lc.cal_range}}">REQUEST EXTENSION</button>
-                    <button type="button" class="btn btn-default btn-default entity_action" data-ill_lc_id="{{lc.clc.id}}" data-action="lose_ill">REPORT LOSS</button></td>
+                    <button type="button" class="btn btn-default btn-default entity_action_confirm" data-ill_lc_id="{{lc.clc.id}}" data-reason="" data-action="lose_ill">REPORT LOSS</button></td>
             </tr>
             {% endfor %}
         </table>

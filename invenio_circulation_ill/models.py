@@ -18,6 +18,7 @@ class IllLoanCycle(CirculationObject, db.Model):
     end_date = db.Column(db.Date)
     desired_end_date = db.Column(db.Date)
     type = db.Column(db.String(255))
+    supplier_library = db.Column(db.String(255))
     edition = db.Column(db.String(255))
     delivery = db.Column(db.String(255))
     comments = db.Column(db.String(255))
@@ -47,11 +48,12 @@ class IllLoanCycle(CirculationObject, db.Model):
     EVENT_ILL_CLC_CANCELED= 'ill_clc_canceled'
     EVENT_ILL_CLC_DELIVERED = 'ill_clc_delivered'
     EVENT_ILL_CLC_EXTENSION_REQUESTED = 'ill_clc_extension_requested'
-    EVENT_ILL_CLC_FINISHED = 'ill_clc_FINISHED'
+    EVENT_ILL_CLC_FINISHED = 'ill_clc_finished'
     EVENT_ILL_CLC_SEND_BACK = 'ill_clc_send_back'
     EVENT_ILL_CLC_LOST = 'ill_clc_lost'
     EVENT_ILL_CLC_EXTENSION_CONFIRMED = 'ill_clc_extension_confirmed'
     EVENT_ILL_CLC_EXTENSION_DECLINED = 'ill_clc_extension_declined'
+    EVENT_ILL_CLC_OVERDUE_LETTER_SEND = 'ill_clc_extension_declined'
 
     DELIVERY_DEFAULT = 'pick_up'
 
@@ -62,6 +64,7 @@ class IllLoanCycle(CirculationObject, db.Model):
                         'item_id': {'type': 'integer'},
                         'user_id': {'type': 'integer'},
                         'current_status': {'type': 'string'},
+                        'supplier_library': {'type': 'string'},
                         'start_date': {'type': 'string'},
                         'end_date': {'type': 'string'},
                         'issued_date': {'type': 'string'},
@@ -70,4 +73,20 @@ class IllLoanCycle(CirculationObject, db.Model):
                     }
 
 
-entities = [('Ill Loan Cycle', 'ill_loan_cycle', IllLoanCycle)]
+class IllSupplier(CirculationObject, db.Model):
+    __tablename__ = 'ill_supplier'
+    id = db.Column(db.BigInteger, primary_key=True, nullable=False)
+    name = db.Column(db.String(255))
+    _data = db.Column(db.LargeBinary)
+
+    _json_schema = {'type': 'object',
+                    'title': 'Inter Library Loan Supplier',
+                    'properties': {
+                        'id': {'type': 'integer'},
+                        'name': {'type': 'string'},
+                        }
+                    }
+
+
+entities = [('Ill Loan Cycle', 'ill_loan_cycle', IllLoanCycle),
+            ('Ill Supplier', 'ill_supplier', IllSupplier)]

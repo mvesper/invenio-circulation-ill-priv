@@ -40,5 +40,7 @@ css = NpmBundle(
     # "vendors/jquery-ui/themes/redmond/jquery-ui.css",
     # "vendors/typeahead.js-bootstrap3.less/typeahead.css",
     "css/ill/ill.css",
+    "css/other/awesomplete.css",
+    "css/circulation/circ_id_complete.css",
     output="gen/circulation_ill.css",
 )
