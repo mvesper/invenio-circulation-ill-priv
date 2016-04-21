@@ -43,7 +43,7 @@ function($, _bdp) {
     $('#ill_request_submit').on('click', function(){
         // Get record values
         var rec = {};
-        var active_form = $('.ill_document').not('hidden');
+        var active_form = $('.ill_document').not('.hidden');
         active_form.find('.form-control').each(function(index, element) {
             rec[$(element).data('value_name')] = element.value;
         });
