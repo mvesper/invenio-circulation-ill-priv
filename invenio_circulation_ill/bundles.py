@@ -21,17 +21,15 @@
 
 from __future__ import unicode_literals
 
-from invenio_theme.bundles import js as _js
-
-from flask_assets import Bundle
 from invenio_assets import NpmBundle, RequireJSFilter
+from invenio_theme.bundles import js as _js
 
 
 js_ill = NpmBundle(
     "js/circulation_ill_init.js",
     output="gen/circulation_ill.%(version)s.js",
     filters=RequireJSFilter(exclude=[_js.contents[1]]),
-    npm = {},
+    npm={},
 )
 
 css = NpmBundle(

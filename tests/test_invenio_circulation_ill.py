@@ -50,13 +50,3 @@ def test_init():
     assert 'invenio-circulation-ill' not in app.extensions
     ext.init_app(app)
     assert 'invenio-circulation-ill' in app.extensions
-
-
-def test_view(app):
-    """Test view."""
-    Babel(app)
-    InvenioCirculationIll(app)
-    with app.test_client() as client:
-        res = client.get("/")
-        assert res.status_code == 200
-        assert 'Welcome to Invenio-Circulation-Ill' in str(res.data)

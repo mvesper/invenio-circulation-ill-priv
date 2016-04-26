@@ -73,6 +73,10 @@ with open(os.path.join('invenio_circulation_ill', 'version.py'), 'rt') as fp:
     exec(fp.read(), g)
     version = g['__version__']
 
+ici = 'invenio_circulation_ill = invenio_circulation_ill:InvenioCirculationIll'
+icic = 'invenio_circulation_ill_css = invenio_circulation_ill.bundles:css'
+icij = 'invenio_circulation_ill_js = invenio_circulation_ill.bundles:js_ill'
+
 setup(
     name='invenio-circulation-ill',
     version=version,
@@ -89,17 +93,17 @@ setup(
     platforms='any',
     entry_points={
         'invenio_base.apps': [
-            'invenio_circulation_ill = invenio_circulation_ill:InvenioCirculationIll',
+            ici,
         ],
         'invenio_i18n.translations': [
             'messages = invenio_circulation_ill',
         ],
         'invenio_db.models': [
-            'invenio_circulation_ill = invenio_circulation_ill.models',  
+            'invenio_circulation_ill = invenio_circulation_ill.models',
         ],
         'invenio_assets.bundles': [
-            'invenio_circulation_ill_css = invenio_circulation_ill.bundles:css',
-            'invenio_circulation_ill_js = invenio_circulation_ill.bundles:js_ill',
+            icic,
+            icij,
         ],
         # TODO: Edit these entry points to fit your needs.
         # 'invenio_access.actions': [],

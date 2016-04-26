@@ -28,14 +28,13 @@ from __future__ import absolute_import, print_function
 
 from flask_babelex import gettext as _
 
-from .views.ill import blueprint as ill_blueprint
-
 from .receivers.circulation import *
 from .receivers.entity import *
-from .receivers.user import *
-from .receivers.record_action import *
 from .receivers.lists import *
+from .receivers.record_action import *
+from .receivers.user import *
 from .receivers.utils import *
+from .views.ill import blueprint as ill_blueprint
 
 
 class InvenioCirculationIll(object):

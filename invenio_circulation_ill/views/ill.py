@@ -17,11 +17,13 @@
 # along with Invenio; if not, write to the Free Software Foundation, Inc.,
 # 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
+"""invenio-circulation-ill interface."""
+
+
 import json
 import datetime
 
 import invenio_circulation.models as circ_models
-import invenio_circulation_ill.models as models
 import invenio_circulation_ill.api as api
 
 from flask import Blueprint, render_template, flash, request
@@ -94,6 +96,10 @@ def _prepare_record_authors(rec):
 @blueprint.route('/ill/request_ill/')
 @blueprint.route('/ill/request_ill/<record_id>')
 def ill_request(record_id=None):
+    """Interface to request an inter library loan for the user.
+
+    Without a record_id, an empty form will be presented.
+    """
     try:
         get_user(current_user)
     except AttributeError:
@@ -121,11 +127,15 @@ def ill_request(record_id=None):
 @blueprint.route('/ill/register_ill/<record_id>')
 @cap.require(403)
 def ill_register(record_id=None):
+    """Interface to register an inter library loan for the administrator.
+
+    Without a record_id, an empty form will be presented.
+    """
     if record_id:
         _uuid = PersistentIdentifier.get('recid', record_id).object_uuid
         rec = Record.get_record(_uuid)
     else:
-        res = {}
+        rec = {}
 
     _prepare_record(rec, rec_fields)
     _prepare_record_authors(rec)
@@ -181,7 +191,7 @@ def _create_record(data):
 
     r = Record.create(rec, id_=rec_uuid)
     RecordIndexer().index(r)
-    
+
     db.session.commit()
 
     return r
@@ -202,7 +212,7 @@ def _try_fetch_user(user):
 def _create_ill(data, user):
     try:
         record = circ_models.CirculationRecord.get(data['record_id'])
-    except Exception as e:
+    except Exception:
         try:
             record = _create_record(data['record'])
         except ValueError:
@@ -225,6 +235,7 @@ def _create_ill(data, user):
 @blueprint.route('/api/ill/register_ill/', methods=['POST'])
 @cap.require(403)
 def register_ill():
+    """API to register an inter library loan for the administrator."""
     data = json.loads(request.get_json())
     user = _try_fetch_user(data['user'])
     return _create_ill(data, user)
@@ -232,6 +243,7 @@ def register_ill():
 
 @blueprint.route('/api/ill/request_ill/', methods=['POST'])
 def request_ill():
+    """API to request an inter library loan for the user."""
     try:
         user = get_user(current_user)
         data = json.loads(request.get_json())

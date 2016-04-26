@@ -1,3 +1,25 @@
+# -*- coding: utf-8 -*-
+#
+# This file is part of Invenio.
+# Copyright (C) 2016 CERN.
+#
+# Invenio is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License as
+# published by the Free Software Foundation; either version 2 of the
+# License, or (at your option) any later version.
+#
+# Invenio is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Invenio; if not, write to the Free Software Foundation, Inc.,
+# 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
+
+"""invenio-circulation-ill api responsible for IllLoanCycle handling."""
+
+
 from invenio_circulation.api.item import create as create_item
 from invenio_circulation.api.item import lose_items
 from invenio_circulation.api.event import create as create_event
@@ -23,6 +45,17 @@ def _create_ill_temporary_item(record):
 
 def request_ill(user, record, start_date, end_date,
                 delivery=None, comments='', type=None):
+    """Request inter library loan for the given record to the given user.
+
+    :param record: Invenio Record.
+    :param user: CirculationUser.
+    :param start_date: Start date of the loan (without time).
+    :param end_date: End date of the loan (without time).
+    :param delivery: 'pick_up' or 'internal_mail'
+    :param comments: Comments regarding the inter library loan.
+
+    :return: Created IllLoanCycle
+    """
     delivery = IllLoanCycle.DELIVERY_DEFAULT if delivery is None else delivery
     type = IllLoanCycle.TYPE_BOOK if type is None else type
 
@@ -45,6 +78,13 @@ def request_ill(user, record, start_date, end_date,
 
 
 def try_confirm_ill_request(ill_loan_cycle):
+    """Check the conditions to confirm a given requested inter library loan.
+
+    Checked conditions:
+    * The current_status must be 'requested'.
+
+    :param ill_loan_cycle: Requested inter library loan.
+    """
     exceptions = []
     try:
         assert ill_loan_cycle.current_status == IllLoanCycle.STATUS_REQUESTED,\
@@ -56,7 +96,15 @@ def try_confirm_ill_request(ill_loan_cycle):
         raise ValidationExceptions(exceptions)
 
 
-def confirm_ill_request(ill_loan_cycle, supplier_id, comments):
+def confirm_ill_request(ill_loan_cycle, supplier_id, comments=''):
+    """Confirm the given inter library loan request.
+
+    The ill_loan_cycles current_status will be set to 'ordered'.
+
+    :param supplier_id: Id of the chosen IllSupplier.
+
+    :raise: ValidationExceptions
+    """
     try:
         try_confirm_ill_request(ill_loan_cycle)
     except ValidationExceptions as e:
@@ -76,11 +124,20 @@ def confirm_ill_request(ill_loan_cycle, supplier_id, comments):
 
 
 def try_cancel_ill_request(ill_loan_cycle):
+    """Check the conditions to cancel the inter library loan.
+
+    Checked conditions:
+    * The current_status must be 'requested' or 'ordered'.
+
+    :raise: ValidationExceptions
+    """
     exceptions = []
     try:
-        assert (ill_loan_cycle.current_status == IllLoanCycle.STATUS_REQUESTED or
-                ill_loan_cycle.current_status == IllLoanCycle.STATUS_ORDERED), \
-                'The ill loan cycle is in the wrong state'
+        sr = IllLoanCycle.STATUS_REQUESTED
+        so = IllLoanCycle.STATUS_ORDERED
+        msg = 'The ill loan cycle is in the wrong state'
+        assert (ill_loan_cycle.current_status == sr or
+                ill_loan_cycle.current_status == so), msg
     except AssertionError as e:
         exceptions.append(('ill', e))
 
@@ -89,6 +146,11 @@ def try_cancel_ill_request(ill_loan_cycle):
 
 
 def cancel_ill_request(ill_loan_cycle, reason=''):
+    """Cancel the given inter library loan.
+
+    The ill_loan_cycles current_status will be set to 'canceled'.
+    :raise: ValidationExceptions
+    """
     try:
         try_cancel_ill_request(ill_loan_cycle)
     except ValidationExceptions as e:
@@ -103,10 +165,18 @@ def cancel_ill_request(ill_loan_cycle, reason=''):
 
 
 def try_decline_ill_request(ill_loan_cycle):
+    """Check the conditions to decline the inter library loan request.
+
+    Checked conditions:
+    * The current_status must be 'requested'.
+
+    :raise: ValidationExceptions
+    """
     exceptions = []
     try:
-        assert ill_loan_cycle.current_status == IllLoanCycle.STATUS_REQUESTED, \
-                'The ill loan cycle is in the wrong state'
+        sr = IllLoanCycle.STATUS_REQUESTED
+        msg = 'The ill loan cycle is in the wrong state'
+        assert ill_loan_cycle.current_status == sr, msg
     except AssertionError as e:
         exceptions.append(('ill', e))
 
@@ -115,6 +185,11 @@ def try_decline_ill_request(ill_loan_cycle):
 
 
 def decline_ill_request(ill_loan_cycle, reason=''):
+    """Decline the given inter library loan request.
+
+    The ill_loan_cycles current_status will be set to 'declined'.
+    :raise: ValidationExceptions
+    """
     try:
         try_decline_ill_request(ill_loan_cycle)
     except ValidationExceptions as e:
@@ -133,6 +208,13 @@ def decline_ill_request(ill_loan_cycle, reason=''):
 
 
 def try_deliver_ill(ill_loan_cycle):
+    """Check the conditions to deliver the inter library loan.
+
+    Checked conditions:
+    * The current_status must be 'ordered'.
+
+    :raise: ValidationExceptions
+    """
     exceptions = []
     try:
         assert ill_loan_cycle.current_status == IllLoanCycle.STATUS_ORDERED, \
@@ -145,6 +227,12 @@ def try_deliver_ill(ill_loan_cycle):
 
 
 def deliver_ill(ill_loan_cycle):
+    """Deliver the given inter library loan.
+
+    The items current_status will be set to 'on_loan'.
+    The ill_loan_cycles current_status will be set to 'on_loan'.
+    :raise: ValidationExceptions
+    """
     try:
         try_deliver_ill(ill_loan_cycle)
     except ValidationExceptions as e:
@@ -156,6 +244,7 @@ def deliver_ill(ill_loan_cycle):
     ill_loan_cycle.save()
 
     ill_loan_cycle.item.current_status = models.CirculationItem.STATUS_ON_LOAN
+    ill_loan_cycle.item.save()
 
     create_event(ill_loan_cycle_id=ill_loan_cycle.id,
                  event=IllLoanCycle.EVENT_ILL_CLC_DELIVERED)
@@ -166,10 +255,18 @@ def deliver_ill(ill_loan_cycle):
 
 
 def try_request_ill_extension(ill_loan_cycle):
+    """Check the conditions to request an inter library loan extension.
+
+    Checked conditions:
+    * The current_status must be 'on_loan'.
+
+    :raise: ValidationExceptions
+    """
     exceptions = []
     try:
-        assert ill_loan_cycle.current_status == CirculationLoanCycle.STATUS_ON_LOAN, \
-               'The ill loan cycle is in the wrong state'
+        sol = CirculationLoanCycle.STATUS_ON_LOAN
+        msg = 'The ill loan cycle is in the wrong state'
+        assert ill_loan_cycle.current_status == sol, msg
     except AssertionError as e:
         exceptions.append(('ill', e))
 
@@ -178,13 +275,20 @@ def try_request_ill_extension(ill_loan_cycle):
 
 
 def request_ill_extension(ill_loan_cycle, requested_end_date):
+    """Request an extension for the given inter library loan.
+
+    'extension_requested' will be added to the attribute additional_statuses.
+    The desired_end_date will be set to requested_end_date.
+    :raise: ValidationExceptions
+    """
     try:
         try_request_ill_extension(ill_loan_cycle)
     except ValidationExceptions as e:
         raise e
 
+    ser = IllLoanCycle.STATUS_EXTENSION_REQUESTED
     ill_loan_cycle.desired_end_date = requested_end_date
-    ill_loan_cycle.additional_statuses.append(IllLoanCycle.STATUS_EXTENSION_REQUESTED)
+    ill_loan_cycle.additional_statuses.append(ser)
     ill_loan_cycle.save()
 
     create_event(ill_loan_cycle_id=ill_loan_cycle.id,
@@ -194,7 +298,16 @@ def request_ill_extension(ill_loan_cycle, requested_end_date):
                        ill_loan_cycle.user.email,
                        loan_cycle=ill_loan_cycle)
 
+
 def try_confirm_ill_extension(ill_loan_cycle):
+    """Check the conditions to confirm the inter library loan extension.
+
+    Checked conditions:
+    * The current_status must be 'on_loan'.
+    * The additional_statuses must contain 'extension_requested'.
+
+    :raise: ValidationExceptions
+    """
     exceptions = []
     try:
         assert ill_loan_cycle.current_status == IllLoanCycle.STATUS_ON_LOAN, \
@@ -204,8 +317,8 @@ def try_confirm_ill_extension(ill_loan_cycle):
 
     try:
         s = IllLoanCycle.STATUS_EXTENSION_REQUESTED
-        assert s in ill_loan_cycle.additional_statuses, \
-                'The ill loan cycle is in the wrong state'
+        msg = 'The ill loan cycle is in the wrong state'
+        assert s in ill_loan_cycle.additional_statuses, msg
     except AssertionError as e:
         exceptions.append(('ill', e))
 
@@ -220,14 +333,21 @@ def try_confirm_ill_extension(ill_loan_cycle):
 
 
 def confirm_ill_extension(ill_loan_cycle):
+    """Confirm the requested extension for the given inter library loan.
+
+    The end_date and desired_end_date attributes will be adjusted.
+    'extension_requested' will be removed from additional_statuses.
+    :raise: ValidationExceptions
+    """
     try:
         try_confirm_ill_extension(ill_loan_cycle)
     except ValidationExceptions as e:
         raise e
 
+    ser = IllLoanCycle.STATUS_EXTENSION_REQUESTED
     ill_loan_cycle.end_date = ill_loan_cycle.desired_end_date
     ill_loan_cycle.desired_end_date = None
-    ill_loan_cycle.additional_statuses.remove(IllLoanCycle.STATUS_EXTENSION_REQUESTED)
+    ill_loan_cycle.additional_statuses.remove(ser)
     ill_loan_cycle.save()
 
     create_event(ill_loan_cycle_id=ill_loan_cycle.id,
@@ -239,6 +359,14 @@ def confirm_ill_extension(ill_loan_cycle):
 
 
 def try_decline_ill_extension(ill_loan_cycle):
+    """Check the conditions to decline the inter library loan extension.
+
+    Checked conditions:
+    * The current_status must be 'on_loan'.
+    * The additional_statuses must contain 'extension_requested'.
+
+    :raise: ValidationExceptions
+    """
     exceptions = []
     try:
         assert ill_loan_cycle.current_status == IllLoanCycle.STATUS_ON_LOAN, \
@@ -248,8 +376,8 @@ def try_decline_ill_extension(ill_loan_cycle):
 
     try:
         s = IllLoanCycle.STATUS_EXTENSION_REQUESTED
-        assert s in ill_loan_cycle.additional_statuses, \
-               'The ill loan cycle is in the wrong state'
+        msg = 'The ill loan cycle is in the wrong state'
+        assert s in ill_loan_cycle.additional_statuses, msg
     except AssertionError as e:
         exceptions.append(('ill', e))
 
@@ -262,14 +390,22 @@ def try_decline_ill_extension(ill_loan_cycle):
     if exceptions:
         raise ValidationExceptions(exceptions)
 
+
 def decline_ill_extension(ill_loan_cycle, reason=''):
+    """Decline the requested extension for the given inter library loan.
+
+    'extension_requested' will be removed from additional_statuses.
+    The desired_end_date will be set to None.
+    :raise: ValidationExceptions
+    """
     try:
         try_decline_ill_extension(ill_loan_cycle)
     except ValidationExceptions as e:
         raise e
 
+    ser = IllLoanCycle.STATUS_EXTENSION_REQUESTED
     ill_loan_cycle.desired_end_date = None
-    ill_loan_cycle.additional_statuses.remove(IllLoanCycle.STATUS_EXTENSION_REQUESTED)
+    ill_loan_cycle.additional_statuses.remove(ser)
     ill_loan_cycle.save()
 
     create_event(ill_loan_cycle_id=ill_loan_cycle.id,
@@ -282,6 +418,13 @@ def decline_ill_extension(ill_loan_cycle, reason=''):
 
 
 def try_return_ill(ill_loan_cycle):
+    """Check the conditions to return the inter library loan.
+
+    Checked conditions:
+    * The current_status must be 'on_loan'.
+
+    :raise: ValidationExceptions
+    """
     exceptions = []
     try:
         assert ill_loan_cycle.current_status == IllLoanCycle.STATUS_ON_LOAN, \
@@ -294,8 +437,16 @@ def try_return_ill(ill_loan_cycle):
 
 
 def return_ill(ill_loan_cycle):
-    # This function should be called using a signal once the corresponding
-    # item is returned
+    """Return the given inter library loan.
+
+    The ill_loan_cycles current_status will be set to 'finished'.
+    The items current_status will be set to 'on_shelf'.
+
+    This function should be called using a signal once the corresponding
+    item is returned.
+
+    :raise: ValidationExceptions
+    """
     try:
         try_return_ill(ill_loan_cycle)
     except ValidationExceptions as e:
@@ -304,11 +455,21 @@ def return_ill(ill_loan_cycle):
     ill_loan_cycle.current_status = IllLoanCycle.STATUS_FINISHED
     ill_loan_cycle.save()
 
+    ill_loan_cycle.item.current_status = CirculationItem.STATUS_ON_SHELF
+    ill_loan_cycle.item.save()
+
     create_event(ill_loan_cycle_id=ill_loan_cycle.id,
                  event=IllLoanCycle.EVENT_ILL_CLC_FINISHED)
 
 
 def try_send_back_ill(ill_loan_cycle):
+    """Check the conditions to send the inter library loan back.
+
+    Checked conditions:
+    * The current_status must be 'finished'.
+
+    :raise: ValidationExceptions
+    """
     exceptions = []
     try:
         assert ill_loan_cycle.current_status == IllLoanCycle.STATUS_FINISHED, \
@@ -321,6 +482,12 @@ def try_send_back_ill(ill_loan_cycle):
 
 
 def send_back_ill(ill_loan_cycle):
+    """Send the given inter library loan back.
+
+    The ill_loan_cycles current_status will be set to 'send_back'.
+    The items current_status will be set to 'unavailable'.
+    :raise: ValidationExceptions
+    """
     try:
         try_send_back_ill(ill_loan_cycle)
     except ValidationExceptions as e:
@@ -329,11 +496,21 @@ def send_back_ill(ill_loan_cycle):
     ill_loan_cycle.current_status = IllLoanCycle.STATUS_SEND_BACK
     ill_loan_cycle.save()
 
+    ill_loan_cycle.item.current_status = CirculationItem.STATUS_UNAVAILABLE
+    ill_loan_cycle.item.save()
+
     create_event(ill_loan_cycle_id=ill_loan_cycle.id,
                  event=IllLoanCycle.EVENT_ILL_CLC_SEND_BACK)
 
 
 def try_lose_ill(ill_loan_cycle):
+    """Check the conditions to lose the inter library loan.
+
+    Checked conditions:
+    * The current_status must be 'on_loan'.
+
+    :raise: ValidationExceptions
+    """
     exceptions = []
     try:
         assert ill_loan_cycle.current_status == IllLoanCycle.STATUS_ON_LOAN, \
@@ -346,6 +523,12 @@ def try_lose_ill(ill_loan_cycle):
 
 
 def lose_ill(ill_loan_cycle):
+    """Lose the given inter library loan.
+
+    The ill_loan_cycles current_status will be set to 'missing'.
+    The items current_status will be set to 'missing'.
+    :raise: ValidationExceptions
+    """
     try:
         try_lose_ill(ill_loan_cycle)
     except ValidationExceptions as e:
